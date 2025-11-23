@@ -331,6 +331,84 @@
             transform: scale(1.1);
         }
         
+        .selected-colors {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .color-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #2A2A2A;
+            border: 1px solid #444;
+        }
+        .color-chip .swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #222;
+        }
+        .color-chip .remove-btn {
+            cursor: pointer;
+            color: #F44336;
+            font-size: 12px;
+            border: none;
+            background: transparent;
+        }
+        .color-picker-row input[type="text"] {
+            background: #2A2A2A;
+            color: var(--text);
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 8px;
+        }
+        
+        .color-category-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .color-category-tab {
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: #2A2A2A;
+            border: 1px solid #444;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .color-category-tab.selected {
+            border-color: var(--secondary);
+            background: var(--primary-light);
+        }
+        .color-table {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+        }
+        .color-table-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 8px;
+            background: #2A2A2A;
+            border: 1px solid #444;
+            cursor: pointer;
+        }
+        .color-table-item .swatch {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid #222;
+        }
+        .color-table-item.selected {
+            border-color: var(--secondary);
+            background: var(--primary-light);
+        }
+        
         .energy-flags {
             display: flex;
             gap: 10px;
@@ -686,20 +764,62 @@
                     </div>
                     
                     <div class="input-group">
-                        <label>Cor do Filamento</label>
-                        <select id="corFilamento" style="margin-bottom: 10px;">
-                            <option value="padrao">Padrão (Branco, Preto, Cinza)</option>
-                            <option value="cores-basicas">Cores Básicas (Azul, Vermelho, Verde)</option>
-                            <option value="cores-especiais">Cores Especiais (Metalizado, Transparente)</option>
-                            <option value="cores-premium">Cores Premium (Glow, Madeira, Flexível)</option>
-                        </select>
-                        
-                        <div class="color-palette">
-                            <div class="color-palette-option selected" style="background-color: #FFFFFF;" data-color="branco" title="Branco"></div>
-                            <div class="color-palette-option" style="background-color: #000000;" data-color="preto" title="Preto"></div>
-                            <div class="color-palette-option" style="background-color: #808080;" data-color="cinza" title="Cinza"></div>
-                            <div class="color-palette-option" style="background-color: #FF0000;" data-color="vermelho" title="Vermelho"></div>
-                            <div class="color-palette-option" style="background-color: #0000FF;" data-color="azul" title="Azul"></div>
+                        <!-- Botão que abre o seletor de cores -->
+                        <button id="openColorPicker" class="picker-button" style="display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:8px; background:#333; color:#fff; border:1px solid #555; cursor:pointer;">Cor do Filamento</button>
+
+                        <!-- Impressora e modo de cores -->
+                        <div class="color-controls" style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label for="impressora3d" style="margin-bottom: 6px;">Impressora 3D</label>
+                                <select id="impressora3d">
+                                    <option value="ender-3-v3-se">Creality Ender 3 V3 SE</option>
+                                    <option value="bambu-a1-mini">Bambu Lab A1 Mini (AMS)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="margin-bottom: 6px;">Modo de cores</label>
+                                <div>
+                                    <label style="display:inline-flex; align-items:center; gap:6px; margin-right:15px;">
+                                        <input type="radio" name="modoCores3d" id="modoMonocor3d" value="monocor" checked>
+                                        Monocor
+                                    </label>
+                                    <label style="display:inline-flex; align-items:center; gap:6px;">
+                                        <input type="radio" name="modoCores3d" id="modoMulticolor3d" value="multicolorida">
+                                        Multicolorida
+                                    </label>
+                                </div>
+                                <small id="multicolorNote" style="display:block; color:#FF9800; margin-top:6px;">Multicolorida está disponível apenas na Bambu Lab A1 Mini (AMS).</small>
+                            </div>
+                        </div>
+
+                        <!-- Tipo de filamento -->
+                        <div class="input-row" style="margin-top: 10px;">
+                            <label style="margin-bottom: 6px; display:block;">Tipo de filamento</label>
+                            <div>
+                                <label style="display:inline-flex; align-items:center; gap:6px; margin-right:15px;">
+                                    <input type="radio" name="tipoFilamento" id="tipoFilamentoPrincipal" value="principal" checked>
+                                    Principais
+                                </label>
+                                <label style="display:inline-flex; align-items:center; gap:6px;">
+                                    <input type="radio" name="tipoFilamento" id="tipoFilamentoEspecial" value="especial">
+                                    Especial (à parte)
+                                </label>
+                            </div>
+                            <small id="especialNote" style="display:none; color:#FF9800; margin-top:6px;">Filamento especial será informado e cobrado à parte.</small>
+                        </div>
+
+                        <!-- Lista de cores selecionadas (apenas para multicolor) -->
+                        <div id="selectedColors3d" class="selected-colors" style="margin-top:10px;"></div
+
+                        <!-- Modal de seleção de cores -->
+                        <div id="colorModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+                            <div style="background:#2B2B2B; border:1px solid #555; border-radius:10px; width: min(680px, 90vw); max-height: 80vh; overflow:auto;">
+                                <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #444;">
+                                    <strong style="color:#fff;">Escolha a cor</strong>
+                                    <button id="closeColorModal" style="background:#444; color:#fff; border:1px solid #666; border-radius:6px; padding:6px 10px; cursor:pointer;">Fechar</button>
+                                </div>
+                                <div id="colorTable3d" class="color-table" style="padding:12px;"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1016,6 +1136,226 @@
         let precoFinal = 0;
         let dadosCalculo = {};
         let abaAtual = 'impressao3d';
+        let selectedColors3d = [];
+
+        function normalizeHex(hex) {
+            if (!hex) return null;
+            hex = String(hex).trim().toUpperCase();
+            if (!hex.startsWith('#')) hex = '#' + hex.replace('#','');
+            return hex;
+        }
+
+        function isMultiColorMode() {
+            const printer = document.getElementById('impressora3d')?.value;
+            const multi = document.getElementById('modoMulticolor3d')?.checked;
+            return printer === 'bambu-a1-mini' && multi;
+        }
+
+        // Paleta com nomes por categoria
+        const palette3d = {
+            'padrao': [
+                { name: 'Branco', hex: '#FFFFFF' },
+                { name: 'Preto', hex: '#000000' },
+                { name: 'Cinza', hex: '#808080' },
+                { name: 'Cinza Claro', hex: '#BFBFBF' },
+                { name: 'Cinza Escuro', hex: '#404040' },
+                { name: 'Carvão', hex: '#2F2F2F' },
+                { name: 'Marfim', hex: '#FFFFF0' },
+                { name: 'Bege', hex: '#F5F5DC' }
+            ],
+            'cores-basicas': [
+                { name: 'Vermelho', hex: '#FF0000' },
+                { name: 'Vermelho Escuro', hex: '#8B0000' },
+                { name: 'Laranja', hex: '#FFA500' },
+                { name: 'Amarelo', hex: '#FFFF00' },
+                { name: 'Verde', hex: '#00AA00' },
+                { name: 'Lima', hex: '#32CD32' },
+                { name: 'Turquesa', hex: '#40E0D0' },
+                { name: 'Ciano', hex: '#00FFFF' },
+                { name: 'Azul', hex: '#0000FF' },
+                { name: 'Azul Claro', hex: '#87CEFA' },
+                { name: 'Azul Escuro', hex: '#00008B' },
+                { name: 'Roxo', hex: '#800080' },
+                { name: 'Magenta', hex: '#FF00FF' },
+                { name: 'Rosa', hex: '#FFC0CB' },
+                { name: 'Marrom', hex: '#8B4513' },
+                { name: 'Tijolo', hex: '#B22222' }
+            ],
+            'cores-especiais': [
+                { name: 'Lavanda', hex: '#E6E6FA' },
+                { name: 'Salmão', hex: '#FA8072' },
+                { name: 'Pêssego', hex: '#FFDAB9' },
+                { name: 'Coral', hex: '#FF7F50' },
+                { name: 'Vinho', hex: '#800000' },
+                { name: 'Oliva', hex: '#808000' },
+                { name: 'Verde Floresta', hex: '#228B22' },
+                { name: 'Aquamarine', hex: '#7FFFD4' },
+                { name: 'Azul Petróleo', hex: '#0F4C81' },
+                { name: 'Aço', hex: '#4682B4' },
+                { name: 'Índigo', hex: '#4B0082' },
+                { name: 'Carmesim', hex: '#DC143C' },
+                { name: 'Mostarda', hex: '#FFDB58' },
+                { name: 'Terracota', hex: '#E2725B' },
+                { name: 'Âmbar', hex: '#FFBF00' },
+                { name: 'Neon Pink', hex: '#FF6EC7' },
+                { name: 'Neon Green', hex: '#39FF14' },
+                { name: 'Neon Yellow', hex: '#FFF700' },
+                { name: 'Neon Orange', hex: '#FF5F1F' },
+                { name: 'Neon Blue', hex: '#1F51FF' }
+            ],
+            'cores-premium': [
+                { name: 'Dourado', hex: '#D4AF37' },
+                { name: 'Prata', hex: '#C0C0C0' },
+                { name: 'Cobre', hex: '#B87333' },
+                { name: 'Bronze', hex: '#CD7F32' },
+                { name: 'Grafite', hex: '#3B3B3B' },
+                { name: 'Champagne', hex: '#F7E7CE' },
+                { name: 'Rose Gold', hex: '#B76E79' },
+                { name: 'Gunmetal', hex: '#2A3439' },
+                { name: 'Titânio', hex: '#8A8D8F' },
+                { name: 'Pérola', hex: '#F8F7F3' },
+                { name: 'Cromo', hex: '#E5E4E2' },
+                { name: 'Alumínio', hex: '#A9A9A9' }
+            ]
+        };
+
+        const hexToName = (() => {
+            const m = {};
+            Object.values(palette3d).forEach(arr => arr.forEach(c => { m[c.hex.toUpperCase()] = c.name; }));
+            return m;
+        })();
+
+        function atualizarModoCores() {
+            const printer = document.getElementById('impressora3d').value;
+            const multicolorRadio = document.getElementById('modoMulticolor3d');
+            const note = document.getElementById('multicolorNote');
+            if (printer === 'bambu-a1-mini') {
+                multicolorRadio.disabled = false;
+                note.style.display = 'none';
+            } else {
+                multicolorRadio.disabled = true;
+                document.getElementById('modoMonocor3d').checked = true;
+                note.style.display = 'block';
+                selectedColors3d = [];
+                renderSelectedColors();
+            }
+        }
+
+        function renderPaletteTable(category) {
+            const container = document.getElementById('colorTable3d');
+            if (!container) return;
+            container.innerHTML = '';
+            const arr = (category === 'all') 
+                ? Object.values(palette3d).reduce((acc, cur) => acc.concat(cur), [])
+                : (palette3d[category] || []);
+            arr.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'color-table-item';
+                div.setAttribute('data-hex', c.hex);
+                div.setAttribute('data-name', c.name);
+                div.innerHTML = `
+                    <span class="swatch" style="background:${c.hex}"></span>
+                    <span class="label">${c.name}</span>
+                `;
+                div.addEventListener('click', () => {
+                    addSelectedColor(c.hex, c.name);
+                    if (!isMultiColorMode()) {
+                        container.querySelectorAll('.color-table-item').forEach(el => el.classList.remove('selected'));
+                        div.classList.add('selected');
+                    }
+                });
+                container.appendChild(div);
+            });
+        }
+
+        function initColorCategories() {
+            const precoFilamento = document.getElementById('precoFilamento');
+            const precoAtual = document.getElementById('precoAtual');
+            // Mantém o preço atual exibido, sem depender de categoria
+            if (precoAtual && precoFilamento) {
+                precoAtual.textContent = String(precoFilamento.value);
+            }
+            // Renderiza todas as cores em uma única tabela
+            renderPaletteTable('all');
+        }
+
+        function atualizarTipoFilamento() {
+            const principal = document.getElementById('tipoFilamentoPrincipal')?.checked;
+            const chipsEl = document.getElementById('selectedColors3d');
+            const note = document.getElementById('especialNote');
+            const trigger = document.getElementById('openColorPicker');
+            const modal = document.getElementById('colorModal');
+            if (principal) {
+                if (chipsEl) chipsEl.style.display = 'flex';
+                if (note) note.style.display = 'none';
+                if (trigger) { trigger.disabled = false; trigger.style.opacity = '1'; trigger.style.pointerEvents = 'auto'; }
+            } else {
+                if (chipsEl) chipsEl.style.display = 'none';
+                if (note) note.style.display = 'block';
+                if (trigger) { trigger.disabled = true; trigger.style.opacity = '0.6'; trigger.style.pointerEvents = 'none'; }
+                if (modal) modal.style.display = 'none';
+                selectedColors3d = [];
+                renderSelectedColors();
+            }
+        }
+
+        document.getElementById('tipoFilamentoPrincipal')?.addEventListener('change', atualizarTipoFilamento);
+        document.getElementById('tipoFilamentoEspecial')?.addEventListener('change', atualizarTipoFilamento);
+        atualizarTipoFilamento();
+
+        // Modal de seleção de cores
+        function openColorModal() {
+            const overlay = document.getElementById('colorModal');
+            if (!overlay) return;
+            overlay.style.display = 'flex';
+            renderPaletteTable('all');
+        }
+        function closeColorModal() {
+            const overlay = document.getElementById('colorModal');
+            if (!overlay) return;
+            overlay.style.display = 'none';
+        }
+        document.getElementById('openColorPicker')?.addEventListener('click', () => {
+            if (document.getElementById('tipoFilamentoEspecial')?.checked) return;
+            openColorModal();
+        });
+        document.getElementById('closeColorModal')?.addEventListener('click', closeColorModal);
+        document.getElementById('colorModal')?.addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'colorModal') closeColorModal();
+        });
+
+        function addSelectedColor(hex, name) {
+            const h = normalizeHex(hex);
+            if (!h) return;
+            const maxColors = document.getElementById('impressora3d').value === 'bambu-a1-mini' ? 4 : 1;
+            const existing = selectedColors3d.find(c => c.hex === h);
+            if (existing) return;
+            if (selectedColors3d.length >= maxColors) return;
+            const n = name || hexToName[h] || 'Personalizada';
+            selectedColors3d.push({ hex: h, name: n });
+            renderSelectedColors();
+        }
+
+        function removeSelectedColor(hex) {
+            const h = normalizeHex(hex);
+            selectedColors3d = selectedColors3d.filter(c => c.hex !== h);
+            renderSelectedColors();
+        }
+
+        function renderSelectedColors() {
+            const container = document.getElementById('selectedColors3d');
+            if (!container) return;
+            container.innerHTML = selectedColors3d.map(c => `
+                <div class="color-chip">
+                    <span class="swatch" style="background:${c.hex}"></span>
+                    <span class="name">${c.name}</span>
+                    <button class="remove-btn" data-color="${c.hex}">remover</button>
+                </div>
+            `).join('');
+            container.querySelectorAll('.remove-btn').forEach(btn => {
+                btn.addEventListener('click', () => removeSelectedColor(btn.getAttribute('data-color')));
+            });
+        }
         
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
@@ -1040,14 +1380,24 @@
             
             // Configurar seleções
             configurarSelecoes();
-            
-            // Configurar eventos de mudança
-            document.getElementById('corFilamento').addEventListener('change', function() {
-                const precoFilamento = document.getElementById('precoFilamento');
-                const precoAtual = document.getElementById('precoAtual');
-                precoFilamento.value = precosFilamento[this.value];
-                precoAtual.textContent = precoFilamento.value;
+            atualizarModoCores();
+
+            // Eventos de impressora e modo
+            document.getElementById('impressora3d').addEventListener('change', atualizarModoCores);
+            document.getElementById('modoMonocor3d').addEventListener('change', () => {
+                atualizarModoCores();
+                renderSelectedColors();
             });
+            document.getElementById('modoMulticolor3d').addEventListener('change', () => {
+                atualizarModoCores();
+                renderSelectedColors();
+            });
+
+            initColorCategories();
+
+            // Removido: entrada manual de cor; seleção apenas pela tabela de categorias.
+            
+            // Seleção de categoria e preço são atualizados via abas de categoria; select removido.
             
             document.getElementById('tipoCaneca').addEventListener('change', function() {
                 const custo = precosCanecas[this.value];
@@ -1064,18 +1414,16 @@
         
         function configurarSelecoes() {
             // Configurar opções de seleção
-            const todasOpcoes = document.querySelectorAll('.color-option, .color-palette-option, .energy-flag');
+            const todasOpcoes = document.querySelectorAll('.color-option, .energy-flag');
             todasOpcoes.forEach(opcao => {
                 opcao.addEventListener('click', function() {
                     const grupo = this.parentElement;
-                    if (grupo.classList.contains('color-options') || grupo.classList.contains('energy-flags') || grupo.classList.contains('color-palette')) {
-                        grupo.querySelectorAll('.color-option, .color-palette-option, .energy-flag').forEach(o => o.classList.remove('selected'));
-                    }
-                    this.classList.add('selected');
-                    
-                    // Atualizar bandeira tarifária
-                    if (this.classList.contains('energy-flag')) {
-                        atualizarAcrescimoBandeira();
+                    if (grupo.classList.contains('color-options') || grupo.classList.contains('energy-flags')) {
+                        grupo.querySelectorAll('.color-option, .energy-flag').forEach(o => o.classList.remove('selected'));
+                        this.classList.add('selected');
+                        if (this.classList.contains('energy-flag')) {
+                            atualizarAcrescimoBandeira();
+                        }
                     }
                 });
             });
@@ -1124,7 +1472,28 @@
             
             const bandeiraSelecionada = document.querySelector('.energy-flag.selected').getAttribute('data-flag');
             const acrescimoBandeira = bandeiras[bandeiraSelecionada];
-            const corSelecionada = document.querySelector('.color-palette-option.selected').getAttribute('data-color');
+            const impressora = document.getElementById('impressora3d').value;
+            const modo = isMultiColorMode() ? 'Multicolorida' : 'Monocor';
+            const especial = document.getElementById('tipoFilamentoEspecial')?.checked;
+
+            let coresSelecionadas = [];
+            if (especial) {
+                // quando filamento especial é a parte, apenas anotamos
+                coresSelecionadas = ['Especial (à parte)'];
+            } else if (modo === 'Multicolorida') {
+                if (!selectedColors3d.length) {
+                    alert('Selecione pelo menos uma cor para impressão multicolorida.');
+                    return;
+                }
+                coresSelecionadas = selectedColors3d.map(c => c.name);
+            } else {
+                if (!selectedColors3d.length) {
+                    alert('Selecione uma cor na tabela.');
+                    return;
+                }
+                // usa somente a primeira cor
+                coresSelecionadas = selectedColors3d.slice(0,1).map(c => c.name);
+            }
             
             let tempoTotal = tempoHoras + (tempoMinutos / 60);
             
@@ -1158,7 +1527,9 @@
                     tempoHoras: tempoHoras,
                     tempoMinutos: tempoMinutos,
                     filamento: filamento,
-                    corFilamento: corSelecionada,
+                    impressora: impressora,
+                    modoCores: modo,
+                    cores: coresSelecionadas,
                     complexidade: complexidade,
                     bandeiraTarifaria: bandeiraSelecionada
                 }
@@ -1279,8 +1650,16 @@
                         <span>${dadosCalculo.detalhes.filamento.toFixed(2)}g</span>
                     </div>
                     <div class="result-item">
-                        <span>Cor do Filamento:</span>
-                        <span>${dadosCalculo.detalhes.corFilamento.charAt(0).toUpperCase() + dadosCalculo.detalhes.corFilamento.slice(1)}</span>
+                        <span>Impressora:</span>
+                        <span>${dadosCalculo.detalhes.impressora === 'bambu-a1-mini' ? 'Bambu Lab A1 Mini (AMS)' : 'Creality Ender 3 V3 SE'}</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Modo de Cores:</span>
+                        <span>${dadosCalculo.detalhes.modoCores}</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Cores:</span>
+                        <span>${(dadosCalculo.detalhes.cores || []).join(', ')}</span>
                     </div>
                     <div class="result-item">
                         <span>Custo de Energia:</span>
@@ -1420,7 +1799,10 @@
             
             if (dadosCalculo.tipo === 'Impressão 3D') {
                 doc.text(`• Tempo: ${dadosCalculo.detalhes.tempoHoras}h ${dadosCalculo.detalhes.tempoMinutos}min`, 20, 116);
-                doc.text(`• Filamento: ${dadosCalculo.detalhes.filamento.toFixed(2)}g - ${dadosCalculo.detalhes.corFilamento}`, 20, 124);
+                doc.text(`• Filamento: ${dadosCalculo.detalhes.filamento.toFixed(2)}g`, 20, 124);
+                doc.text(`• Impressora: ${dadosCalculo.detalhes.impressora === 'bambu-a1-mini' ? 'Bambu Lab A1 Mini (AMS)' : 'Creality Ender 3 V3 SE'}`, 20, 132);
+                doc.text(`• Modo: ${dadosCalculo.detalhes.modoCores}`, 20, 138);
+                doc.text(`• Cores: ${(dadosCalculo.detalhes.cores || []).join(', ')}`, 20, 144);
             } else {
                 doc.text(`• Quantidade: ${dadosCalculo.quantidade} unidade(s)`, 20, 116);
                 doc.text(`• ${dadosCalculo.produto}`, 20, 124);
