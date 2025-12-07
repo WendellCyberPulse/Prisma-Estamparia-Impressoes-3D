@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Pedidos e Produtos</title>
+  <link rel="icon" href="../img/logo.png" type="image/x-icon">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="./catalogo.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <div class="prisma-logo"><div class="prisma-triangle"><div class="prisma-inner"></div></div></div>
+        <div class="brand-text">Prisma Studio</div>
+      </div>
+      <div style="color:var(--accent)">Painel do Vendedor</div>
+    </div>
+    <div class="layout">
+      <div>
+        <div class="section-title">Pedidos</div>
+        <div class="panel" id="listaPedidos"></div>
+      </div>
+      <div>
+        <div class="panel">
+          <div class="section-title">Pagamento PIX</div>
+          <div class="input-group"><input id="valorPix" placeholder="Valor" type="number" step="0.01"></div>
+          <div class="input-group"><input id="mensagemPix" placeholder="Mensagem"></div>
+          <div style="display:flex; gap:8px; align-items:center; margin-top:8px">
+            <button id="btnGerarPix" class="btn btn-success"><i class="fas fa-qrcode"></i> Gerar QR</button>
+          </div>
+          <div style="margin-top:12px; display:flex; justify-content:center"><img id="qrPixImg" alt="QR PIX" style="width:300px; height:300px; display:none; border-radius:8px"/></div>
+          <div style="display:flex; gap:8px; align-items:center; margin-top:8px">
+            <button id="btnEnviarQrChat" class="btn btn-primary"><i class="fas fa-share"></i> Enviar QR ao chat</button>
+            <button id="btnEnviarChaveChat" class="btn btn-secondary"><i class="fas fa-key"></i> Enviar chave PIX</button>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <div class="section-title">Cadastrar Produto</div>
+          <div class="input-group"><input id="novoNome" placeholder="Nome do produto"></div>
+          <div class="input-group"><input id="novoPreco" placeholder="Preço" type="number" step="0.01"></div>
+          <div class="input-group"><input id="novoImagem" placeholder="URL da imagem (opcional)"></div>
+          <div class="input-group"><textarea id="novoDescricao" rows="3" placeholder="Descrição"></textarea></div>
+          <button id="btnCadastrarProduto" class="btn btn-primary" style="margin-top:8px"><i class="fas fa-plus"></i> Cadastrar</button>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <div class="section-title">Configurações PIX</div>
+          <div class="input-group"><input id="chavePix" placeholder="Chave PIX"></div>
+          <div class="input-group"><input id="nomeRecebedor" placeholder="Nome do recebedor"></div>
+          <div class="input-group"><input id="cidadeRecebedor" placeholder="Cidade"></div>
+          <button id="btnSalvarSettings" class="btn btn-secondary" style="margin-top:8px"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+      </div>
+    </div>
+    <div class="footer">Prisma Studio © Admin</div>
+  </div>
+  <script src="./catalogo.js"></script>
+  <script>
+    const api = window.catalogoApi;
+    let selectedPedidoId = null;
+    let currentChatOrderId = null;
+    let lastPixUrl = '';
+    function renderPedidos(){
+      const pedidos = api.getPedidos();
+      const el = document.getElementById('listaPedidos');
+      if(!pedidos.length){ el.innerHTML = '<div>Nenhum pedido.</div>'; return; }
+      el.innerHTML = pedidos.map(p => {
+        const itens = (p.itens||[]).map(i => `${i.nome} × ${i.qtd}`).join(', ');
+        return `
+        <div class=\"card\">
+          <div class=\"name\">${p.cliente} • ${p.telefone}</div>
+          <div>${itens}</div>
+          <div class=\"price\">Total: ${api.formatCurrency(p.total)}</div>
+          <div style=\"display:flex; gap:8px; align-items:center;\">
+            <select id=\"status_${p.id}\">
+              <option value=\"novo\" ${p.status==='novo'?'selected':''}>Novo</option>
+              <option value=\"em_pagamento\" ${p.status==='em_pagamento'?'selected':''}>Em pagamento</option>
+              <option value=\"pago\" ${p.status==='pago'?'selected':''}>Pago</option>
+              <option value=\"producao\" ${p.status==='producao'?'selected':''}>Produção</option>
+              <option value=\"enviado\" ${p.status==='enviado'?'selected':''}>Enviado</option>
+              <option value=\"concluido\" ${p.status==='concluido'?'selected':''}>Concluído</option>
+            </select>
+            <button class=\"btn btn-secondary\" onclick=\"salvarStatus('${p.id}')\"><i class=\"fas fa-save\"></i> Status</button>
+            <button class=\"btn btn-success\" onclick=\"usarPedido('${p.id}', ${p.total})\"><i class=\"fas fa-qrcode\"></i> PIX</button>
+            <button class=\"btn btn-secondary\" onclick=\"copyClientLink('${p.id}')\"><i class=\"fas fa-link\"></i> Link</button>
+            <button class=\"btn btn-primary\" onclick=\"openAdminChat('${p.id}')\"><i class=\"fas fa-comments\"></i> Chat</button>
+            <button class=\"btn btn-secondary\" onclick=\"removerPedido('${p.id}')\"><i class=\"fas fa-trash\"></i></button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+    function salvarStatus(id){ const st = document.getElementById('status_'+id).value; api.updatePedidoStatus(id, st); renderPedidos(); }
+    function usarPedido(id, total){ selectedPedidoId = id; document.getElementById('valorPix').value = Number(total).toFixed(2); }
+    function removerPedido(id){ api.removePedido(id); if(selectedPedidoId===id) selectedPedidoId=null; renderPedidos(); }
+    function cadastrarProduto(){
+      const nome = document.getElementById('novoNome').value.trim();
+      const preco = Number(document.getElementById('novoPreco').value);
+      const imagem = document.getElementById('novoImagem').value.trim();
+      const descricao = document.getElementById('novoDescricao').value.trim();
+      if(!nome || !preco){ alert('Informe nome e preço.'); return; }
+      const novo = api.addProduto({ nome, preco, imagem, descricao });
+      document.getElementById('novoNome').value=''; document.getElementById('novoPreco').value=''; document.getElementById('novoImagem').value=''; document.getElementById('novoDescricao').value='';
+      alert('Produto cadastrado: '+novo.nome);
+    }
+    function carregarSettings(){ const s = api.getSettings(); document.getElementById('chavePix').value = s.chavePix || ''; document.getElementById('nomeRecebedor').value = s.nomeRecebedor || ''; document.getElementById('cidadeRecebedor').value = s.cidade || ''; }
+    function salvarSettings(){ const s = { chavePix: document.getElementById('chavePix').value.trim(), nomeRecebedor: document.getElementById('nomeRecebedor').value.trim(), cidade: document.getElementById('cidadeRecebedor').value.trim() }; api.updateSettings(s); alert('Configurações salvas.'); }
+    function gerarQr(){
+      const s = api.getSettings();
+      if(!s.chavePix){ alert('Configure a chave PIX.'); return; }
+      const valor = Number(document.getElementById('valorPix').value || 0);
+      if(!valor || valor <= 0){ alert('Informe um valor.'); return; }
+      const msg = document.getElementById('mensagemPix').value.trim() || 'Pagamento Prisma Studio';
+      const url = api.getPixQrUrl(s.chavePix, valor, s.nomeRecebedor, s.cidade, msg);
+      lastPixUrl = url;
+      const img = document.getElementById('qrPixImg'); img.src = url; img.style.display = 'block';
+    }
+    function openAdminChat(id){ currentChatOrderId = id; renderAdminChat(); document.getElementById('chatAdminModal').style.display = 'flex'; }
+    function closeAdminChat(){ document.getElementById('chatAdminModal').style.display = 'none'; }
+    function renderAdminChat(){ if(!currentChatOrderId) return; const pedido = api.getPedidoById(currentChatOrderId); const status = pedido ? pedido.status : ''; document.getElementById('adminChatStatus').textContent = `Status: ${status}`; const msgs = api.getChat(currentChatOrderId); const box = document.getElementById('adminChatMessages'); box.innerHTML = msgs.map(m => { if(m.kind==='pix' && m.pixUrl){ return `<div class=\"bubble ${m.author==='cliente'?'bubble-client':'bubble-admin'}\"><div>QR PIX</div><img src=\"${m.pixUrl}\"/></div>`; } return `<div class=\"bubble ${m.author==='cliente'?'bubble-client':'bubble-admin'}\">${m.text}</div>`; }).join(''); box.scrollTop = box.scrollHeight; }
+    function sendAdminMessage(){ if(!currentChatOrderId) return; const text = document.getElementById('adminChatText').value.trim(); if(!text) return; api.addChatMessage(currentChatOrderId, { author: 'admin', text }); document.getElementById('adminChatText').value=''; renderAdminChat(); }
+    function sendPixToChat(){ if(!currentChatOrderId){ alert('Abra o chat de um pedido.'); return; } if(!lastPixUrl){ alert('Gere o QR primeiro.'); return; } api.addChatMessage(currentChatOrderId, { author: 'admin', kind: 'pix', pixUrl: lastPixUrl }); renderAdminChat(); }
+    function sendPixKeyToChat(){ if(!currentChatOrderId){ alert('Abra o chat de um pedido.'); return; } const s = api.getSettings(); if(!s.chavePix){ alert('Configure a chave PIX.'); return; } api.addChatMessage(currentChatOrderId, { author: 'admin', text: `Chave PIX: ${s.chavePix}` }); renderAdminChat(); }
+    function copyClientLink(id){ const basePath = window.location.pathname.replace(/admin\.html$/, 'cliente.html'); const base = window.location.origin + basePath; const url = `${base}?orderId=${id}`; if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(() => alert('Link copiado.')); } else { prompt('Copie o link:', url); } }
+    document.getElementById('btnCadastrarProduto').addEventListener('click', cadastrarProduto);
+    document.getElementById('btnSalvarSettings').addEventListener('click', salvarSettings);
+    document.getElementById('btnGerarPix').addEventListener('click', gerarQr);
+    document.getElementById('btnEnviarQrChat').addEventListener('click', sendPixToChat);
+    document.getElementById('btnEnviarChaveChat').addEventListener('click', sendPixKeyToChat);
+    carregarSettings();
+    renderPedidos();
+  </script>
+  <div id="chatAdminModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeAdminChat()">&times;</span>
+      <div class="section-title">Chat do Pedido</div>
+      <div id="adminChatStatus" style="color:var(--accent); margin-bottom:8px"></div>
+      <div id="adminChatMessages" class="messages"></div>
+      <div class="chat-input">
+        <input id="adminChatText" placeholder="Digite sua mensagem" style="flex:1"/>
+        <button class="btn btn-primary" onclick="sendAdminMessage()"><i class="fas fa-paper-plane"></i> Enviar</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

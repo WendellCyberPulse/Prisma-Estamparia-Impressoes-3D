@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo de Produtos - Prisma Studio</title>
+  <link rel="icon" href="../img/logo.png" type="image/x-icon">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="./catalogo.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <div class="prisma-logo"><div class="prisma-triangle"><div class="prisma-inner"></div></div></div>
+        <div class="brand-text">Prisma Studio</div>
+      </div>
+      <div style="color:var(--accent)">Catálogo para Clientes</div>
+    </div>
+    <div class="layout">
+      <div>
+        <div class="section-title">Produtos</div>
+        <div id="gridProdutos" class="catalog-grid"></div>
+      </div>
+      <div>
+        <div class="panel">
+          <div class="section-title">Seu Pedido</div>
+          <div id="listaCarrinho"></div>
+          <div class="total">Total: <span id="totalCarrinho">R$ 0.00</span></div>
+          <div style="margin-top:12px; display:flex; gap:8px">
+            <button id="btnLimpar" class="btn btn-secondary"><i class="fas fa-trash"></i> Limpar</button>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <div class="section-title">Dados do Cliente</div>
+          <div class="input-group"><input id="nomeCliente" placeholder="Nome completo"></div>
+          <div class="input-group"><input id="telefoneCliente" placeholder="Telefone/WhatsApp"></div>
+          <div class="input-group"><textarea id="observacoesCliente" rows="2" placeholder="Observações"></textarea></div>
+          <button id="btnEnviarPedido" class="btn btn-success" style="margin-top:8px"><i class="fas fa-paper-plane"></i> Enviar Pedido</button>
+        </div>
+        <div class="panel chat-panel">
+          <div class="section-title">Meus Pedidos e Chat</div>
+          <div class="chat-header">
+            <input id="chatOrderId" placeholder="ID do Pedido" style="flex:1"/>
+            <button class="btn btn-secondary" onclick="openChat()"><i class="fas fa-comment"></i> Abrir</button>
+          </div>
+          <div id="chatStatus" style="color:var(--accent); margin-bottom:8px"></div>
+          <div id="chatMessages" class="messages"></div>
+          <div class="chat-input">
+            <input id="chatText" placeholder="Digite sua mensagem" style="flex:1"/>
+            <button class="btn btn-primary" onclick="sendClientMessage()"><i class="fas fa-paper-plane"></i> Enviar</button>
+          </div>
+          <div class="chat-input">
+            <input id="searchPhone" placeholder="Buscar por telefone" style="flex:1"/>
+            <button class="btn btn-secondary" onclick="searchByPhone()"><i class="fas fa-search"></i> Buscar</button>
+          </div>
+          <div id="deviceOrders" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">Prisma Studio © Catálogo</div>
+  </div>
+  <div id="produtoModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeProductModal()">&times;</span>
+      <div class="detail-grid">
+        <div>
+          <img id="detailImg" class="detail-img" alt="Produto"/>
+        </div>
+        <div>
+          <div id="detailTitle" class="detail-title"></div>
+          <div id="detailPrice" class="detail-price"></div>
+          <div id="detailDesc" class="detail-desc"></div>
+          <div class="detail-actions">
+            <input id="detailQtd" type="number" min="1" value="1" style="width:90px"/>
+            <button class="btn btn-primary" onclick="addFromModal()"><i class="fas fa-cart-plus"></i> Adicionar ao carrinho</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="./catalogo.js"></script>
+  <script>
+    const api = window.catalogoApi;
+    let carrinho = [];
+    let currentDetailId = null;
+    let currentOrderId = localStorage.getItem('catalogo_current_order') || null;
+    let deviceId = localStorage.getItem('catalogo_device_id');
+    if(!deviceId){ deviceId = 'd_'+Math.random().toString(36).slice(2); localStorage.setItem('catalogo_device_id', deviceId); }
+    function renderProdutos(){
+      const produtos = api.getProdutos();
+      const grid = document.getElementById('gridProdutos');
+      grid.innerHTML = produtos.map(p => {
+        return `
+        <div class=\"card\">
+          <img src=\"${p.imagem}\" alt=\"${p.nome}\" onclick=\"openProductModal('${p.id}')\"/>
+          <div class=\"name\" onclick=\"openProductModal('${p.id}')\">${p.nome}</div>
+          <div class=\"price\">${api.formatCurrency(p.preco)}</div>
+          <div class=\"actions\">
+            <input type=\"number\" min=\"1\" value=\"1\" id=\"q_${p.id}\" style=\"width:90px\"/>
+            <button class=\"btn btn-primary\" onclick=\"addToCart('${p.id}')\"><i class=\"fas fa-plus\"></i> Adicionar</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+    function openProductModal(id){
+      const p = api.getProdutoById(id);
+      if(!p) return;
+      currentDetailId = id;
+      document.getElementById('detailImg').src = p.imagem;
+      document.getElementById('detailTitle').textContent = p.nome;
+      document.getElementById('detailPrice').textContent = api.formatCurrency(p.preco);
+      document.getElementById('detailDesc').textContent = p.descricao || '';
+      document.getElementById('detailQtd').value = 1;
+      document.getElementById('produtoModal').style.display = 'flex';
+    }
+    function closeProductModal(){ document.getElementById('produtoModal').style.display = 'none'; }
+    function addFromModal(){
+      if(!currentDetailId) return;
+      const p = api.getProdutoById(currentDetailId);
+      const qtd = Number(document.getElementById('detailQtd').value || 1);
+      const existing = carrinho.find(i => i.id === p.id);
+      if(existing){ existing.qtd += qtd; } else { carrinho.push({ id: p.id, nome: p.nome, preco: p.preco, qtd }); }
+      renderCarrinho();
+      closeProductModal();
+    }
+    function addToCart(id){
+      const produtos = api.getProdutos();
+      const p = produtos.find(x => x.id === id);
+      if(!p) return;
+      const qtd = Number(document.getElementById('q_'+id).value || 1);
+      const existing = carrinho.find(i => i.id === id);
+      if(existing){ existing.qtd += qtd; } else { carrinho.push({ id: p.id, nome: p.nome, preco: p.preco, qtd }); }
+      renderCarrinho();
+    }
+    function renderCarrinho(){
+      const list = document.getElementById('listaCarrinho');
+      list.innerHTML = carrinho.map(it => {
+        const subtotal = Number(it.preco) * Number(it.qtd);
+        return `
+          <div class=\"cart-item\">
+            <span>${it.nome} × ${it.qtd}</span>
+            <span>${api.formatCurrency(subtotal)}</span>
+          </div>`;
+      }).join('');
+      const total = api.calcTotal(carrinho);
+      document.getElementById('totalCarrinho').textContent = api.formatCurrency(total);
+    }
+    function limparCarrinho(){ carrinho = []; renderCarrinho(); }
+    function enviarPedido(){
+      const nome = document.getElementById('nomeCliente').value.trim();
+      const tel = document.getElementById('telefoneCliente').value.trim();
+      if(!carrinho.length){ alert('Adicione produtos ao pedido.'); return; }
+      if(!nome || !tel){ alert('Informe nome e telefone.'); return; }
+      const total = api.calcTotal(carrinho);
+      const novo = api.addPedido({ cliente: nome, telefone: tel, observacoes: document.getElementById('observacoesCliente').value.trim(), itens: carrinho, total, deviceId });
+      alert('Pedido enviado. ID: '+novo.id);
+      currentOrderId = novo.id;
+      localStorage.setItem('catalogo_current_order', currentOrderId);
+      document.getElementById('chatOrderId').value = currentOrderId;
+      openChat();
+      limparCarrinho();
+      document.getElementById('nomeCliente').value = '';
+      document.getElementById('telefoneCliente').value = '';
+      document.getElementById('observacoesCliente').value = '';
+    }
+    function renderDeviceOrders(){
+      const orders = api.getOrdersByDeviceId(deviceId);
+      if(!orders.length){ document.getElementById('deviceOrders').innerHTML = ''; return; }
+      document.getElementById('deviceOrders').innerHTML = orders.map(o => `
+        <div class=\"cart-item\">
+          <span>${o.id} • ${o.status}</span>
+          <span><button class=\"btn btn-secondary\" onclick=\"openOrder('${o.id}')\">Abrir</button></span>
+        </div>
+      `).join('');
+    }
+    function openOrder(id){ document.getElementById('chatOrderId').value = id; openChat(); }
+    function searchByPhone(){ const p = document.getElementById('searchPhone').value.trim(); if(!p) return; const orders = api.getOrdersByPhone(p); if(!orders.length){ alert('Nenhum pedido encontrado.'); return; } document.getElementById('deviceOrders').innerHTML = orders.map(o => `
+      <div class=\"cart-item\">
+        <span>${o.id} • ${o.status}</span>
+        <span><button class=\"btn btn-secondary\" onclick=\"openOrder('${o.id}')\">Abrir</button></span>
+      </div>
+    `).join(''); }
+    function getQuery(key){ const p = new URLSearchParams(window.location.search); return p.get(key); }
+    function openChat(){
+      const id = document.getElementById('chatOrderId').value.trim() || currentOrderId;
+      if(!id){ alert('Informe o ID do pedido.'); return; }
+      const pedido = api.getPedidoById(id);
+      if(!pedido){ alert('Pedido não encontrado.'); return; }
+      currentOrderId = id;
+      localStorage.setItem('catalogo_current_order', currentOrderId);
+      document.getElementById('chatStatus').textContent = `Status: ${pedido.status}`;
+      const msgs = api.getChat(id);
+      const box = document.getElementById('chatMessages');
+      box.innerHTML = msgs.map(m => {
+        if(m.kind === 'pix' && m.pixUrl){
+          return `<div class=\"bubble ${m.author==='cliente'?'bubble-client':'bubble-admin'}\"><div>QR PIX</div><img src=\"${m.pixUrl}\"/></div>`;
+        }
+        return `<div class=\"bubble ${m.author==='cliente'?'bubble-client':'bubble-admin'}\">${m.text}</div>`;
+      }).join('');
+      box.scrollTop = box.scrollHeight;
+    }
+    function sendClientMessage(){
+      if(!currentOrderId){ alert('Abra o chat de um pedido.'); return; }
+      const text = document.getElementById('chatText').value.trim();
+      if(!text) return;
+      api.addChatMessage(currentOrderId, { author: 'cliente', text });
+      document.getElementById('chatText').value = '';
+      openChat();
+    }
+    if(currentOrderId){ document.getElementById('chatOrderId').value = currentOrderId; openChat(); }
+    renderDeviceOrders();
+    const qId = getQuery('orderId'); if(qId){ document.getElementById('chatOrderId').value = qId; openChat(); }
+    document.getElementById('btnLimpar').addEventListener('click', limparCarrinho);
+    document.getElementById('btnEnviarPedido').addEventListener('click', enviarPedido);
+    renderProdutos();
+    renderCarrinho();
+  </script>
+</body>
+</html>

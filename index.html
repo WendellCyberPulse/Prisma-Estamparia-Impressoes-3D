@@ -544,6 +544,8 @@
             width: 90%;
             animation: slideUp 0.3s;
             position: relative;
+            max-height: 85vh;
+            overflow-y: auto;
         }
         
         @keyframes slideUp {
@@ -1519,8 +1521,8 @@
             let custoTotal = custoEnergia + custoFilamento + custoOperacional;
             
             custoTotal *= complexidade;
-            precoFinal = custoTotal * (1 + margemLucro / 100);
-            
+            const precoSugerido = custoTotal * (1 + margemLucro / 100);
+            precoFinal = precoSugerido;
             dadosCalculo = {
                 tipo: 'Impressão 3D',
                 produto: 'Peça impressa em 3D',
@@ -1528,7 +1530,8 @@
                 custoFilamento: custoFilamento,
                 custoOperacional: custoOperacional,
                 custoTotal: custoTotal,
-                precoFinal: precoFinal,
+                precoFinalSugerido: precoSugerido,
+                precoFinalFinal: precoSugerido,
                 margemLucro: margemLucro,
                 detalhes: {
                     tempoHoras: tempoHoras,
@@ -1567,7 +1570,8 @@
             const custoSetup = quantidade > 1 ? 0 : 15.00;
             
             const custoFinal = custoTotal + custoSetup;
-            precoFinal = custoFinal * (1 + margemLucro / 100);
+            const precoSugerido = custoFinal * (1 + margemLucro / 100);
+            precoFinal = precoSugerido;
             
             dadosCalculo = {
                 tipo: 'Caneca Personalizada',
@@ -1578,7 +1582,8 @@
                 quantidade: quantidade,
                 custoSetup: custoSetup,
                 custoTotal: custoFinal,
-                precoFinal: precoFinal,
+                precoFinalSugerido: precoSugerido,
+                precoFinalFinal: precoSugerido,
                 margemLucro: margemLucro,
                 detalhes: {
                     tamanhoEstampa: tamanhoEstampa,
@@ -1613,7 +1618,8 @@
             const custoSetup = quantidade > 5 ? 0 : 25.00;
             
             const custoFinal = custoTotal + custoSetup;
-            precoFinal = custoFinal * (1 + margemLucro / 100);
+            const precoSugerido = custoFinal * (1 + margemLucro / 100);
+            precoFinal = precoSugerido;
             
             dadosCalculo = {
                 tipo: 'Camisa Personalizada',
@@ -1624,7 +1630,8 @@
                 quantidade: quantidade,
                 custoSetup: custoSetup,
                 custoTotal: custoFinal,
-                precoFinal: precoFinal,
+                precoFinalSugerido: precoSugerido,
+                precoFinalFinal: precoSugerido,
                 margemLucro: margemLucro,
                 detalhes: {
                     tamanhoEstampa: tamanhoEstampa,
@@ -1737,12 +1744,24 @@
                     </div>
                 </div>
                 <div class="result-total">
-                    <span>Preço Final (com ${dadosCalculo.margemLucro}% de lucro):</span>
-                    <span>R$ ${dadosCalculo.precoFinal.toFixed(2)}</span>
+                    <span>Preço sugerido (com ${dadosCalculo.margemLucro}% de lucro):</span>
+                    <span>R$ ${dadosCalculo.precoFinalSugerido.toFixed(2)}</span>
+                </div>
+                <div class="result-total">
+                    <span>Preço final definitivo:</span>
+                    <span>R$ <input id="precoFinalInput" type="number" step="0.01" value="${dadosCalculo.precoFinalFinal.toFixed(2)}" style="width:120px; padding:8px; border:1px solid #444; border-radius:8px; background:#2A2A2A; color:#E6E6E6"></span>
+                </div>
+                <div class="buttons" style="margin-top:10px;">
+                    <button class="btn-primary" onclick="applyFinalPrice()"><i class="fas fa-check"></i> Aplicar</button>
+                    <button class="btn-secondary" onclick="roundFinalPrice(0)"><i class="fas fa-level-up-alt"></i> .00</button>
+                    <button class="btn-secondary" onclick="roundFinalPrice(80)"><i class="fas fa-level-up-alt"></i> .80</button>
+                    <button class="btn-secondary" onclick="roundFinalPriceToNextInteger()"><i class="fas fa-arrow-up"></i> Próximo inteiro</button>
                 </div>`;
             
             document.getElementById('resultado').innerHTML = html;
             document.getElementById('resultadoModal').style.display = 'flex';
+            const mc = document.querySelector('#resultadoModal .modal-content');
+            if (mc) mc.scrollTop = 0;
         }
 
         function fecharModal() {
@@ -1756,6 +1775,28 @@
             document.getElementById('btnPDF').disabled = true;
         }
         
+        function applyFinalPrice() {
+            const input = document.getElementById('precoFinalInput');
+            const v = parseFloat(input.value);
+            if (!isNaN(v) && v > 0) {
+                dadosCalculo.precoFinalFinal = v;
+            }
+        }
+        function roundFinalPrice(cents) {
+            const base = dadosCalculo.precoFinalSugerido || dadosCalculo.precoFinalFinal || 0;
+            const inteiro = Math.floor(base + 1e-9);
+            const val = inteiro + (cents / 100);
+            const input = document.getElementById('precoFinalInput');
+            input.value = val.toFixed(2);
+            dadosCalculo.precoFinalFinal = val;
+        }
+        function roundFinalPriceToNextInteger() {
+            const base = dadosCalculo.precoFinalSugerido || dadosCalculo.precoFinalFinal || 0;
+            const val = Math.ceil(base + 1e-9);
+            const input = document.getElementById('precoFinalInput');
+            input.value = val.toFixed(2);
+            dadosCalculo.precoFinalFinal = val;
+        }
         function gerarRecibo() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -1838,7 +1879,8 @@
             doc.text('VALOR TOTAL', 105, yPos + 10, { align: 'center' });
             
             doc.setFontSize(20);
-            doc.text(`R$ ${dadosCalculo.precoFinal.toFixed(2)}`, 105, yPos + 20, { align: 'center' });
+            const valorFinal = (dadosCalculo.precoFinalFinal != null ? dadosCalculo.precoFinalFinal : dadosCalculo.precoFinal || 0);
+            doc.text(`R$ ${Number(valorFinal).toFixed(2)}`, 105, yPos + 20, { align: 'center' });
             
             // Assinatura
             const assinaturaY = yPos + 50;
